@@ -79,16 +79,11 @@ func (p *PlayersManage) AddPlayer(data string) error {
 }
 
 func (p *PlayersManage) PlayerExists(id string) (bool, *Players) {
-	p.Lock()
-	defer p.Unlock()
-
 	player, exists := p.Players[id]
 	return exists, player
 }
 
 func (p *PlayersManage) ModifyPlayer(id string, data string) {
-	//p.Lock()
-
 	player, _ := p.ConvertToJson(data)
 
 	exists, _ := p.PlayerExists(id)
@@ -96,22 +91,20 @@ func (p *PlayersManage) ModifyPlayer(id string, data string) {
 		//return fmt.Errorf("player with ID '%s' does not exist", id)
 		p.Players[id] = player
 	}
-
-	//p.Unlock()
-
 }
 
-func (p *PlayersManage) GetAllPlayers() (string, error) {
-
+func (p *PlayersManage) GetDataPlayers(excludedID string) (string, error) {
 	allPlayers := make([]Players, 0, len(p.Players))
 
 	for _, player := range p.Players {
-		allPlayers = append(allPlayers, *player)
+		if player.ID != excludedID {
+			modifiedPlayer := *player
+			modifiedPlayer.Head.Position.Y += 0.3
+			allPlayers = append(allPlayers, modifiedPlayer)
+		}
 	}
 
-	players := PlayersWrapper{
-		Players: allPlayers,
-	}
+	players := PlayersWrapper{Players: allPlayers}
 
 	data, err := json.Marshal(players)
 	if err != nil {
@@ -122,9 +115,6 @@ func (p *PlayersManage) GetAllPlayers() (string, error) {
 }
 
 func (p *PlayersManage) RemovePlayer(id string) error {
-	p.Lock()
-	defer p.Unlock()
-
 	exists, _ := p.PlayerExists(id)
 	if !exists {
 		return fmt.Errorf("player with ID '%s' does not exist", id)

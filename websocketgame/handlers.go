@@ -2,7 +2,6 @@ package websocketgame
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"sync"
 
@@ -27,8 +26,14 @@ var connections Connections = Connections{
 	players: make(map[string]*websocket.Conn),
 }
 
+var playersManage players.PlayersManage = players.PlayersManage{
+	Players:      make(map[string]*players.Players),
+	LimitPlayers: 5,
+}
+
 func Middleware(c *fiber.Ctx) error {
 	if websocket.IsWebSocketUpgrade(c) {
+		c.Locals("playersManage", &playersManage)
 		c.Locals("allowed", true)
 		return c.Next()
 	}
@@ -36,9 +41,15 @@ func Middleware(c *fiber.Ctx) error {
 }
 
 func HandleConnection(c *websocket.Conn) {
-	var manager *players.PlayersManage = players.NewManagePlayers(5)
 	playerId := c.Params("id")
-	log.Printf("PLAYER CONNECT %s SUCCESS...", playerId)
+	manager, ok := c.Locals("playersManage").(*players.PlayersManage)
+	if !ok {
+		log.Println("Error: no se pudo obtener playersManage del contexto")
+		c.Close()
+		return
+	}
+
+	log.Printf("PLAYER CONNECT %s", playerId)
 
 	connections.Lock()
 	connections.players[playerId] = c
@@ -50,9 +61,9 @@ func HandleConnection(c *websocket.Conn) {
 		delete(connections.players, playerId)
 		connections.Unlock()
 		// Eliminar al jugador del manager
-		if err := manager.RemovePlayer(playerId); err != nil {
-			log.Printf("Error removing player %s: %v", playerId, err)
-		}
+		manager.Lock()
+		delete(manager.Players, playerId)
+		manager.Unlock()
 		log.Printf("PLAYER DISCONNECT %s", playerId)
 		c.Close()
 	}()
@@ -84,31 +95,44 @@ func HandleConnection(c *websocket.Conn) {
 
 		case config.MovePlayer:
 			// Procesar MovePlayer
-			// log.Printf("✅ Move Player event received from %v => data: %+v\n", message.From, message)
-			exists, _ := manager.PlayerExists(playerId)
-
-			if exists {
-				
-				fmt.Printf("⚠️ El jugador ya existe: %+v\n", playerId)
-				manager.ModifyPlayer(playerId, message.Data)
-			} else {
-				fmt.Printf("✅ Agregando nuevo jugador: %+v\n", playerId)
-				err := manager.AddPlayer(message.Data)
-				if err != nil {
-					fmt.Printf("❌ Error al agregar jugador: %v\n", err)
-				}
+			player, err := manager.ConvertToJson(message.Data)
+			if err != nil {
+				log.Printf("Error al convertir datos del jugador %s: %v", playerId, err)
+				break
 			}
 
-			players, _ := manager.GetAllPlayers()
+			manager.Lock()
+			exists, _ := manager.PlayerExists(playerId)
+			if !exists {
+				// Actualizar información del jugador existente
+				log.Printf("✅ Agregando jugador: %s. Usuarios conectados: %d", playerId, len(manager.Players)+1)
+				manager.Players[playerId] = player
+			} else {
+				// Agregar un nuevo jugador
+				log.Printf("🔄 Actualizar jugador: %s.", playerId)
+				manager.Players[playerId] = player
+			}
+
+			// Obtener información de otros jugadores (excluyendo al actual)
+			players, err := manager.GetDataPlayers(playerId)
+			if err != nil {
+				log.Printf("Error al obtener jugadores para %s: %v", playerId, err)
+				break
+			}
+			manager.Unlock()
+
+			// Actualizar el mensaje con la lista de jugadores
 			message.Data = players
 			data, err := json.Marshal(message)
 			if err != nil {
-				fmt.Println("Error al convertir a byte:", err)
-				return
+				log.Printf("Error al serializar mensaje para %s: %v", playerId, err)
+				break
 			}
-			connections.Lock()
-			Emits(&connections, mt, data, playerId)
-			connections.Unlock()
+
+			// Enviar mensaje a todos los jugadores excepto al actual
+			if err := c.WriteMessage(mt, data); err != nil {
+				log.Printf("Error al enviar mensaje a %s: %v", playerId, err)
+			}
 
 		default:
 			// Si el evento no es válido
@@ -119,11 +143,11 @@ func HandleConnection(c *websocket.Conn) {
 
 }
 
-func Emits(connections *Connections, mt int, msg []byte, playerID string) {
+func Emits(connections *Connections, messageType int, data []byte, excludedID string) {
 	for id, conn := range connections.players {
-		if id != playerID {
-			if err := conn.WriteMessage(mt, msg); err != nil {
-				log.Printf("Error enviando mensaje a %s: %v", id, err)
+		if id != excludedID { // Excluir al jugador actual
+			if err := conn.WriteMessage(messageType, data); err != nil {
+				log.Printf("Error al enviar mensaje a %s: %v", id, err)
 			}
 		}
 	}
