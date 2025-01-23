@@ -12,6 +12,9 @@ func ServerVR() *fiber.App {
 		AppName:      "Cbtic",
 	})
 
+	// Initialize default config (Assign the middleware to /metrics)
+	// app.Get("/metrics", monitor.New())
+	// app.Get("/metrics", monitor.New(monitor.Config{Title: "Monitor ServerCbtic", Refresh: 1000}))
 	app.Use("/ws", Middleware)
 	app.Get("/ws/:id", websocket.New(HandleConnection))
 

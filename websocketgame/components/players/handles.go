@@ -2,7 +2,6 @@ package players
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"sync"
 )
@@ -19,13 +18,6 @@ type PlayersManage struct {
 	Players      map[string]*Players
 	LimitPlayers int
 	sync.Mutex
-}
-
-func NewManagePlayers(limitUser int) *PlayersManage {
-	return &PlayersManage{
-		Players:      make(map[string]*Players),
-		LimitPlayers: limitUser,
-	}
 }
 
 func (p *PlayersManage) ConvertToJson(data string) (*Players, error) {
@@ -64,33 +56,9 @@ func (p *PlayersManage) ConvertToJson(data string) (*Players, error) {
 	return &player, nil
 }
 
-func (p *PlayersManage) AddPlayer(data string) error {
-	player, err := p.ConvertToJson(data)
-	if err != nil {
-		return err
-	}
-
-	if len(p.Players) >= p.LimitPlayers {
-		return errors.New("player limit reached")
-	}
-
-	p.Players[player.ID] = player
-	return nil
-}
-
 func (p *PlayersManage) PlayerExists(id string) (bool, *Players) {
 	player, exists := p.Players[id]
 	return exists, player
-}
-
-func (p *PlayersManage) ModifyPlayer(id string, data string) {
-	player, _ := p.ConvertToJson(data)
-
-	exists, _ := p.PlayerExists(id)
-	if exists {
-		//return fmt.Errorf("player with ID '%s' does not exist", id)
-		p.Players[id] = player
-	}
 }
 
 func (p *PlayersManage) GetDataPlayers(excludedID string) (string, error) {
@@ -112,15 +80,4 @@ func (p *PlayersManage) GetDataPlayers(excludedID string) (string, error) {
 	}
 
 	return string(data), nil
-}
-
-func (p *PlayersManage) RemovePlayer(id string) error {
-	exists, _ := p.PlayerExists(id)
-	if !exists {
-		return fmt.Errorf("player with ID '%s' does not exist", id)
-	}
-
-	delete(p.Players, id)
-	fmt.Printf("Player with ID '%s' has been removed.\n", id)
-	return nil
 }

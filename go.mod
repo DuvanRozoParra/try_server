@@ -10,6 +10,7 @@ require (
 require (
 	github.com/fasthttp/websocket v1.5.12 // indirect
 	github.com/gofiber/contrib/socketio v1.1.4 // indirect
+	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/savsgio/gotils v0.0.0-20240704082632-aef3928b8a38 // indirect
 	golang.org/x/net v0.34.0 // indirect
 )
