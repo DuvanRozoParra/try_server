@@ -1,4 +1,4 @@
-package websocketgame
+package network
 
 import (
 	"github.com/gofiber/contrib/websocket"

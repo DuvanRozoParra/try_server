@@ -1,4 +1,4 @@
-package websocketgame
+package network
 
 import "github.com/DuvanRozoParra/try_server/config"
 

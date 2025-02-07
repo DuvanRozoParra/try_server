@@ -15,12 +15,21 @@ type Players struct {
 }
 
 type PlayersManage struct {
-	Players      map[string]*Players
-	LimitPlayers int
-	sync.Mutex
+	players map[string]*Players
+	rw      sync.RWMutex
 }
 
-func (p *PlayersManage) ConvertToJson(data string) (*Players, error) {
+func NewPlayer(id string) *Players {
+	return &Players{
+		ID:        id,
+		Head:      BodyPart{Position: Vector3{X: 0, Y: 0, Z: 0}, Rotation: Quaternion{X: 0, Y: 0, Z: 0, W: 0}},
+		Body:      BodyPart{Position: Vector3{X: 0, Y: 0, Z: 0}, Rotation: Quaternion{X: 0, Y: 0, Z: 0, W: 0}},
+		HandLeft:  BodyPart{Position: Vector3{X: 0, Y: 0, Z: 0}, Rotation: Quaternion{X: 0, Y: 0, Z: 0, W: 0}},
+		HandRight: BodyPart{Position: Vector3{X: 0, Y: 0, Z: 0}, Rotation: Quaternion{X: 0, Y: 0, Z: 0, W: 0}},
+	}
+}
+
+func ConvertToJson(data string) (*Players, error) {
 	var temp struct {
 		ID        string `json:"id"`
 		Head      string `json:"head"`
@@ -54,30 +63,4 @@ func (p *PlayersManage) ConvertToJson(data string) (*Players, error) {
 	}
 
 	return &player, nil
-}
-
-func (p *PlayersManage) PlayerExists(id string) (bool, *Players) {
-	player, exists := p.Players[id]
-	return exists, player
-}
-
-func (p *PlayersManage) GetDataPlayers(excludedID string) (string, error) {
-	allPlayers := make([]Players, 0, len(p.Players))
-
-	for _, player := range p.Players {
-		if player.ID != excludedID {
-			modifiedPlayer := *player
-			modifiedPlayer.Head.Position.Y += 0.3
-			allPlayers = append(allPlayers, modifiedPlayer)
-		}
-	}
-
-	players := PlayersWrapper{Players: allPlayers}
-
-	data, err := json.Marshal(players)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal players: %w", err)
-	}
-
-	return string(data), nil
 }
