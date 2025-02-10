@@ -118,11 +118,6 @@ func handleMovement(s *Shard, player *players.Players, dataPlayer string) {
 			playersCopy = append(playersCopy, modifiedPlayer)
 		}
 	}
-	// fmt.Printf("ID => %+v Values => %+v \n", player.ID, playersCopy)
-	// time.Sleep(time.Second * 5)
-	// log.Printf("[Shard %d] Movimiento procesado | Jugadores afectados: %d",
-	// 	0, len(playersCopy))
-	// fmt.Printf("Data =>  %+v\n", s.players[player.ID])
 	s.mu.Unlock()
 
 	dataPlayerMarshal, _ := players.ConvertToJson(dataPlayer)
@@ -131,25 +126,47 @@ func handleMovement(s *Shard, player *players.Players, dataPlayer string) {
 	s.players[player.ID] = dataPlayerMarshal
 	s.mu.Unlock()
 
-	if len(playersCopy) <= 0 {
+	if len(playersCopy) == 0 {
 		return
 	}
 
-	allPlayers, _ := json.Marshal(players.PlayersWrapper{Players: playersCopy})
-	data := MessageObject{Data: string(allPlayers), From: player.ID, Event: config.MovePlayer}
-	json, err := json.Marshal(data)
+	allPlayersJSON, _ := json.Marshal(players.PlayersWrapper{Players: playersCopy})
+
+	data := MessageObject{
+		Data:  string(allPlayersJSON),
+		From:  player.ID,
+		Event: config.MovePlayer,
+	}
+
+	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return
 	}
 
-	// broadcastUpdate(s, json)
 	s.mu.Lock()
-	err = s.connections[player.ID].WriteMessage(websocket.BinaryMessage, json)
+	err = s.connections[player.ID].WriteMessage(websocket.BinaryMessage, jsonData)
+	s.mu.Unlock()
+
 	if err != nil {
 		log.Printf("Error escribiendo en WebSocket: %v", err)
 	}
-	s.mu.Unlock()
+}
 
+func handleRayInteraction(s *Shard, player *players.Players, eventData string) {
+	s.mu.RLock()
+	data := MessageObject{
+		Data:  eventData,
+		From:  player.ID,
+		Event: config.RayInteraction,
+	}
+	s.mu.RUnlock()
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return
+	}
+
+	broadcastUpdate(s, jsonData)
 }
 
 var ManagerShading = NewShardManager()
