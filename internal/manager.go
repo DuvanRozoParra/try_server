@@ -3,6 +3,7 @@ package network
 import (
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
 func ServerVR() *fiber.App {
@@ -11,6 +12,11 @@ func ServerVR() *fiber.App {
 		ServerHeader: "ServerUnimeta",
 		AppName:      "Cbtic",
 	})
+
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowHeaders: "Origin, Content-Type, Accept",
+	}))
 
 	// Initialize default config (Assign the middleware to /metrics)
 	// app.Get("/metrics", monitor.New())
