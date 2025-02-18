@@ -41,6 +41,7 @@ func getEventPriority(event config.EventServer) config.MessagePriority {
 }
 
 func NewShardManager() *ShardManager {
+
 	sm := &ShardManager{
 		shards: make([]*Shard, Shards),
 	}
@@ -112,11 +113,12 @@ func handleMovement(s *Shard, player *players.Players, dataPlayer string) {
 	s.mu.Lock()
 	playersCopy := make([]players.Players, 0, len(s.players))
 	for _, py := range s.players {
-		if py.ID != player.ID {
-			modifiedPlayer := *py
-			modifiedPlayer.Head.Position.Y += 0.3
-			playersCopy = append(playersCopy, modifiedPlayer)
-		}
+		// if py.ID != player.ID {
+		// modifiedPlayer.Head.Position.Y += 0.3
+		modifiedPlayer := *py
+		modifiedPlayer.Body.Position.Y -= 0.3
+		playersCopy = append(playersCopy, modifiedPlayer)
+		// }
 	}
 	s.mu.Unlock()
 
@@ -133,9 +135,10 @@ func handleMovement(s *Shard, player *players.Players, dataPlayer string) {
 	allPlayersJSON, _ := json.Marshal(players.PlayersWrapper{Players: playersCopy})
 
 	data := MessageObject{
-		Data:  string(allPlayersJSON),
-		From:  player.ID,
-		Event: config.MovePlayer,
+		Data:     string(allPlayersJSON),
+		From:     player.ID,
+		Priority: config.High,
+		Event:    config.MovePlayer,
 	}
 
 	jsonData, err := json.Marshal(data)
@@ -155,9 +158,28 @@ func handleMovement(s *Shard, player *players.Players, dataPlayer string) {
 func handleRayInteraction(s *Shard, player *players.Players, eventData string) {
 	s.mu.RLock()
 	data := MessageObject{
-		Data:  eventData,
-		From:  player.ID,
-		Event: config.RayInteraction,
+		Data:     eventData,
+		From:     player.ID,
+		Priority: config.Medium,
+		Event:    config.RayInteraction,
+	}
+	s.mu.RUnlock()
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return
+	}
+
+	broadcastUpdate(s, jsonData)
+}
+
+func handleActionsHandsAnimation(s *Shard, id string, eventData string) {
+	s.mu.RLock()
+	data := MessageObject{
+		Data:     eventData,
+		From:     id,
+		Priority: config.Medium,
+		Event:    config.ActionHandsPlayer,
 	}
 	s.mu.RUnlock()
 

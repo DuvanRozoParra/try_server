@@ -11,6 +11,8 @@ const (
 const (
 	RayInteraction EventServer = iota
 	MovePlayer
+	DeletePlayer
+	ActionHandsPlayer
 )
 
 const (

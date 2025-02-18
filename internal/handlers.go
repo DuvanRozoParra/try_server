@@ -50,8 +50,6 @@ func HandleConnection(c *websocket.Conn) {
 			continue
 		}
 
-		// fmt.Printf("message => %+v\n", message.Data)
-
 		conn.ManagerShading.EnquequeMessage(message)
 	}
 }

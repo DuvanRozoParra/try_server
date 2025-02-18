@@ -1,6 +1,7 @@
 package conn
 
 import (
+	"encoding/json"
 	"log"
 
 	"github.com/DuvanRozoParra/try_server/config"
@@ -41,6 +42,9 @@ func processMessage(s *Shard, msg MessageObject) {
 	case config.RayInteraction:
 		handleRayInteraction(s, player, msg.Data)
 
+	case config.ActionHandsPlayer:
+		handleActionsHandsAnimation(s, player.ID, msg.Data)
+
 	default:
 		log.Printf("Evento desconocido: %v", msg.Event)
 	}
@@ -61,8 +65,22 @@ func handleCommand(s *Shard, cmd Command) {
 
 	case "remove":
 		if cmd.Id != "" {
+
 			delete(s.players, cmd.Id)
 			delete(s.connections, cmd.Id)
+			aver := MessageObject{
+				Data:     "",
+				From:     cmd.Id,
+				Priority: config.Low,
+				Event:    config.DeletePlayer,
+			}
+
+			jsonBytes, err := json.Marshal(aver)
+			if err != nil {
+				log.Fatal("Error al convertir a JSON:", err)
+			}
+			log.Printf("REMOVE PLAYER")
+			broadcastUpdate(s, jsonBytes)
 			// log.Printf("[Shard %d] Jugador REMOVED: %s | Restantes: %d",
 			// 	0, cmd.Id, len(s.players))
 		}
@@ -75,12 +93,12 @@ func handleCommand(s *Shard, cmd Command) {
 }
 
 func broadcastUpdate(s *Shard, data []byte) {
-	s.mu.Lock()
+	//s.mu.Lock()
 	for _, c := range s.connections {
 		err := c.WriteMessage(websocket.BinaryMessage, data)
 		if err != nil {
 			log.Printf("Error escribiendo en WebSocket: %v", err)
 		}
 	}
-	s.mu.Unlock()
+	//s.mu.Unlock()
 }
