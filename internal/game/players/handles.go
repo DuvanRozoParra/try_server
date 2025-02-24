@@ -50,15 +50,19 @@ func ConvertToJson(data string) (*Players, error) {
 
 	// Deserializar las propiedades JSON embebidas
 	if err := json.Unmarshal([]byte(temp.Head), &player.Head); err != nil {
+		// temp.Head = "{Position:{X:0 Y:0 Z:0} Rotation:{X:0 Y:0 Z:0 W:0}}"
 		return nil, fmt.Errorf("failed to parse head data: %w", err)
 	}
 	if err := json.Unmarshal([]byte(temp.Body), &player.Body); err != nil {
+		// temp.Body = "{Position:{X:0 Y:0 Z:0} Rotation:{X:0 Y:0 Z:0 W:0}}"
 		return nil, fmt.Errorf("failed to parse body data: %w", err)
 	}
 	if err := json.Unmarshal([]byte(temp.HandLeft), &player.HandLeft); err != nil {
+		// temp.HandLeft = "{Position:{X:0 Y:0 Z:0} Rotation:{X:0 Y:0 Z:0 W:0}}"
 		return nil, fmt.Errorf("failed to parse handLeft data: %w", err)
 	}
 	if err := json.Unmarshal([]byte(temp.HandRight), &player.HandRight); err != nil {
+		// temp.HandRight = "{Position:{X:0 Y:0 Z:0} Rotation:{X:0 Y:0 Z:0 W:0}}"
 		return nil, fmt.Errorf("failed to parse handRight data: %w", err)
 	}
 

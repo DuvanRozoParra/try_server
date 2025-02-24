@@ -113,16 +113,20 @@ func handleMovement(s *Shard, player *players.Players, dataPlayer string) {
 	s.mu.Lock()
 	playersCopy := make([]players.Players, 0, len(s.players))
 	for _, py := range s.players {
-		// if py.ID != player.ID {
-		// modifiedPlayer.Head.Position.Y += 0.3
-		modifiedPlayer := *py
-		modifiedPlayer.Body.Position.Y -= 0.3
-		playersCopy = append(playersCopy, modifiedPlayer)
-		// }
+		if py.ID != player.ID {
+			// modifiedPlayer.Head.Position.Y += 0.3
+			modifiedPlayer := *py
+			modifiedPlayer.Body.Position.Y -= 0.5
+			playersCopy = append(playersCopy, modifiedPlayer)
+			// log.Printf("modifiedPlayer => %+v\n", modifiedPlayer.HandLeft.Position)
+		}
 	}
 	s.mu.Unlock()
 
-	dataPlayerMarshal, _ := players.ConvertToJson(dataPlayer)
+	dataPlayerMarshal, err := players.ConvertToJson(dataPlayer)
+	if err != nil {
+		panic("no se pudo hacer conversion")
+	}
 
 	s.mu.Lock()
 	s.players[player.ID] = dataPlayerMarshal
@@ -182,13 +186,16 @@ func handleActionsHandsAnimation(s *Shard, id string, eventData string) {
 		Event:    config.ActionHandsPlayer,
 	}
 	s.mu.RUnlock()
+	log.Printf("data => %+v\n", eventData)
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return
 	}
 
+	s.mu.Lock()
 	broadcastUpdate(s, jsonData)
+	s.mu.Unlock()
 }
 
 var ManagerShading = NewShardManager()
