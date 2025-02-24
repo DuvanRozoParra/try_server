@@ -123,6 +123,7 @@ func handleMovement(s *Shard, player *players.Players, dataPlayer string) {
 	}
 	s.mu.Unlock()
 
+	// log.Printf("modifiedPlayer => %+v\n", dataPlayer)
 	dataPlayerMarshal, err := players.ConvertToJson(dataPlayer)
 	if err != nil {
 		panic("no se pudo hacer conversion")
@@ -186,7 +187,7 @@ func handleActionsHandsAnimation(s *Shard, id string, eventData string) {
 		Event:    config.ActionHandsPlayer,
 	}
 	s.mu.RUnlock()
-	log.Printf("data => %+v\n", eventData)
+	// log.Printf("data => %+v\n", eventData)
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
